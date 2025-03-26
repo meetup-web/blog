@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Depends
 from starlette.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
+    HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
 )
@@ -27,7 +28,10 @@ POSTS_ROUTER = APIRouter(prefix="/posts", tags=["posts"])
 
 @POSTS_ROUTER.post(
     path="/",
-    responses={HTTP_201_CREATED: {"model": SuccessResponse[PostId]}},
+    responses={
+        HTTP_201_CREATED: {"model": SuccessResponse[PostId]},
+        HTTP_401_UNAUTHORIZED: {"model": ErrorResponse[ApplicationError]},
+    },
     status_code=HTTP_201_CREATED,
 )
 @inject
@@ -46,6 +50,7 @@ async def create_post(
         HTTP_200_OK: {"model": SuccessResponse[None]},
         HTTP_404_NOT_FOUND: {"model": ErrorResponse[ApplicationError]},
         HTTP_403_FORBIDDEN: {"model": ErrorResponse[ApplicationError]},
+        HTTP_401_UNAUTHORIZED: {"model": ErrorResponse[ApplicationError]},
     },
     status_code=HTTP_200_OK,
 )

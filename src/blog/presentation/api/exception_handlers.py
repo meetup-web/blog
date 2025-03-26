@@ -3,6 +3,7 @@ from dataclasses import asdict
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.status import (
+    HTTP_401_UNAUTHORIZED,
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
     HTTP_422_UNPROCESSABLE_ENTITY,
@@ -20,6 +21,7 @@ STATUS_MAP = {
     ErrorType.VALIDATION_ERROR: HTTP_422_UNPROCESSABLE_ENTITY,
     ErrorType.APPLICATION_ERROR: HTTP_500_INTERNAL_SERVER_ERROR,
     ErrorType.PERMISSION_ERROR: HTTP_403_FORBIDDEN,
+    ErrorType.AUTHORIZATION_ERROR: HTTP_401_UNAUTHORIZED,
 }
 
 

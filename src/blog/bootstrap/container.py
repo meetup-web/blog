@@ -17,6 +17,7 @@ from blog.bootstrap.providers import (
     ApiConfigProvider,
     ApplicationAdaptersProvider,
     ApplicationHandlersProvider,
+    AuthProvider,
     BazarioProvider,
     BrokerProvider,
     CliConfigProvider,
@@ -41,6 +42,7 @@ def bootstrap_api_container(
         ApplicationAdaptersProvider(),
         ApplicationHandlersProvider(),
         InfrastructureAdaptersProvider(),
+        AuthProvider(),
         context={
             DatabaseConfig: database_config,
             RabbitmqConfig: rabbitmq_config,

@@ -69,7 +69,7 @@ from blog.bootstrap.config import (
 )
 from blog.domain.shared.events import DomainEvent
 from blog.infrastructure.domain_events import DomainEvents
-from blog.infrastructure.fake_identity_provider import FakeIdentityProvider
+from blog.infrastructure.htpp_identity_provider import HttpIdentityProvider
 from blog.infrastructure.outbox.adapters.rabbitmq_outbox_publisher import (
     RabbitmqOutboxPublisher,
 )
@@ -159,9 +159,13 @@ class ApplicationAdaptersProvider(Provider):
         WithParents[UtcTimeProvider],  # type: ignore[misc]
         scope=Scope.APP,
     )
+
+
+class AuthProvider(Provider):
+    scope = Scope.REQUEST
+
     identity_provider = provide(
-        WithParents[FakeIdentityProvider],  # type: ignore[misc]
-        scope=Scope.APP,
+        WithParents[HttpIdentityProvider],  # type: ignore[misc]
     )
 
 
