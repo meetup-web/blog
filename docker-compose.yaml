@@ -1,0 +1,97 @@
+services:
+  blog:
+    image: blog
+    build: .
+    container_name: blog
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - DATABASE_URI=postgresql+asyncpg://postgres:postgres@postgres/blog
+    expose:
+      - '8000'
+    ports:
+      - '8000:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: ['blog', 'start-uvicorn', '--host', '0.0.0.0', '--port', '8000']
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsSL http://localhost:8000/healthcheck"]
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 10s
+  migrations:
+    image: blog
+    build: .
+    environment:
+      - DATABASE_URI=postgresql+asyncpg://postgres:postgres@postgres/blog
+    depends_on:
+      postgres:
+        condition: service_healthy
+    container_name: migrations
+    command: ["sh", "-c", "blog make-migrations && blog upgrade-migration"]
+
+  taskiq_worker:
+    image: blog
+    build: .
+    container_name: taskiq_worker
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - DATABASE_URI=postgresql+asyncpg://postgres:postgres@postgres:5432/blog
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: ['blog', 'start-worker']
+
+  taskiq_tasks:
+    image: blog
+    build: .
+    container_name: taskiq_tasks
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672/
+      - DATABASE_URI=postgresql+asyncpg://postgres:postgres@postgres:5432/blog
+    depends_on:
+      taskiq_worker:
+        condition: service_started
+    command: ['blog', 'start-tasks']
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: blog
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d blog -U postgres"]
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:3.11-management-alpine
+    container_name: rabbitmq
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5673:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics check_running -q"]
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 10s

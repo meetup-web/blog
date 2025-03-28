@@ -69,7 +69,6 @@ from blog.bootstrap.config import (
 )
 from blog.domain.shared.events import DomainEvent
 from blog.infrastructure.domain_events import DomainEvents
-from blog.infrastructure.htpp_identity_provider import HttpIdentityProvider
 from blog.infrastructure.outbox.adapters.rabbitmq_outbox_publisher import (
     RabbitmqOutboxPublisher,
 )
@@ -107,6 +106,7 @@ from blog.infrastructure.persistence.transaction import Transaction
 from blog.infrastructure.post_factory_impl import PostFactoryImpl
 from blog.infrastructure.utc_time_provider import UtcTimeProvider
 from blog.infrastructure.uuid7_id_generator import UUID7IdGenerator
+from blog.presentation.api.htpp_identity_provider import HttpIdentityProvider
 
 
 class ApiConfigProvider(Provider):

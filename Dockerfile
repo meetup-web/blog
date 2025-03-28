@@ -1,29 +1,30 @@
-FROM python:3.12-slim AS python
+FROM python:3.12-slim-bookworm AS builder
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    UV_COMPILE_BYTECODE=1
+    PIP_NO_CACHE_DIR=1 \
+    PYSETUP_PATH="/opt/app" \
+    UV_VERSION="0.5.29"
 
+WORKDIR $PYSETUP_PATH
 
-FROM python AS builder
+RUN pip install --no-cache-dir uv==$UV_VERSION
 
-RUN apt-get update && apt-get install -y \
-    curl \
-    procps \
-    && rm -rf /var/lib/apt/lists/*
+COPY ./pyproject.toml ./README.md ./
+COPY ./src ./src
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN python -m venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    uv pip install -e .
 
-COPY pyproject.toml uv.lock ./
+FROM python:3.12-slim-bookworm
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-editable
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
 
-RUN uv pip install --system -r pyproject.toml
+WORKDIR /opt/app
 
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /opt/app/src ./src
 
-FROM builder AS prod
-
-COPY src .
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
