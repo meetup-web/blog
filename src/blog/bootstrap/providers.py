@@ -14,8 +14,9 @@ from dishka import (
 )
 from faststream.rabbit import RabbitBroker
 from sqlalchemy.ext.asyncio import (
-    AsyncConnection,
     AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
     create_async_engine,
 )
 from uvicorn import Config as UvicornConfig
@@ -63,6 +64,7 @@ from blog.application.operations.write.edit_post import (
     EditPost,
     EditPostHandler,
 )
+from blog.application.ports.committer import Committer
 from blog.bootstrap.config import (
     DatabaseConfig,
     RabbitmqConfig,
@@ -77,23 +79,14 @@ from blog.infrastructure.outbox.outbox_publisher import OutboxPublisher
 from blog.infrastructure.outbox.outbox_storing_handler import (
     OutboxStoringHandler,
 )
-from blog.infrastructure.persistence.adapters.sql_comment_data_mapper import (
-    SqlCommentDataMapper,
-)
 from blog.infrastructure.persistence.adapters.sql_comment_gateway import (
     SqlCommentGateway,
 )
 from blog.infrastructure.persistence.adapters.sql_comment_repository import (
     SqlCommentRepository,
 )
-from blog.infrastructure.persistence.adapters.sql_data_mappers_registry import (
-    SqlDataMappersRegistry,
-)
 from blog.infrastructure.persistence.adapters.sql_outbox_gateway import (
     SqlOutboxGateway,
-)
-from blog.infrastructure.persistence.adapters.sql_post_data_mapper import (
-    SqlPostDataMapper,
 )
 from blog.infrastructure.persistence.adapters.sql_post_gateway import (
     SqlPostGateway,
@@ -101,7 +94,6 @@ from blog.infrastructure.persistence.adapters.sql_post_gateway import (
 from blog.infrastructure.persistence.adapters.sql_post_repository import (
     SqlPostRepository,
 )
-from blog.infrastructure.persistence.adapters.unit_of_work import UnitOfWorkImpl
 from blog.infrastructure.persistence.transaction import Transaction
 from blog.infrastructure.post_factory_impl import PostFactoryImpl
 from blog.infrastructure.utc_time_provider import UtcTimeProvider
@@ -125,10 +117,16 @@ class PersistenceProvider(Provider):
         yield engine
         await engine.dispose()
 
-    @provide
-    async def connection(self, engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
-        async with engine.connect() as connection:
-            yield connection
+    @provide(scope=Scope.APP)
+    def session_maker(self, engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+        return async_sessionmaker(engine, expire_on_commit=False, autoflush=True)
+
+    @provide(provides=AsyncSession)
+    async def session(
+        self, session_maker: async_sessionmaker[AsyncSession]
+    ) -> AsyncIterator[AsyncSession]:
+        async with session_maker() as session:
+            yield session
 
 
 class DomainAdaptersProvider(Provider):
@@ -139,7 +137,6 @@ class DomainAdaptersProvider(Provider):
         WithParents[SqlCommentRepository],  # type: ignore[misc]
     )
     domain_events = provide(WithParents[DomainEvents])  # type: ignore[misc]
-    unit_of_work = provide(WithParents[UnitOfWorkImpl])  # type: ignore[misc]
     post_factory = provide(WithParents[PostFactoryImpl])  # type: ignore[misc]
 
 
@@ -159,6 +156,7 @@ class ApplicationAdaptersProvider(Provider):
         WithParents[UtcTimeProvider],  # type: ignore[misc]
         scope=Scope.APP,
     )
+    committer = alias(AsyncSession, provides=Committer)
 
 
 class AuthProvider(Provider):
@@ -172,17 +170,7 @@ class AuthProvider(Provider):
 class InfrastructureAdaptersProvider(Provider):
     scope = Scope.REQUEST
 
-    transaction = alias(
-        AsyncConnection,
-        provides=Transaction,
-    )
-    data_mappers = provide_all(
-        WithParents[SqlPostDataMapper],  # type: ignore[misc]
-        WithParents[SqlCommentDataMapper],  # type: ignore[misc]
-    )
-    data_mappers_registry = provide(
-        WithParents[SqlDataMappersRegistry],  # type: ignore[misc]
-    )
+    transaction = alias(AsyncSession, provides=Transaction)
 
 
 class ApplicationHandlersProvider(Provider):

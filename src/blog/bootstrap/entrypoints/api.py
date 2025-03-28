@@ -12,6 +12,11 @@ from blog.application.common.application_error import ApplicationError
 from blog.bootstrap.config import get_database_config, get_rabbitmq_config
 from blog.bootstrap.container import bootstrap_api_container
 from blog.bootstrap.entrypoints.stream import bootstrap_stream
+from blog.infrastructure.persistence.sql_tables import (
+    map_comments_table,
+    map_outbox_table,
+    map_posts_table,
+)
 from blog.presentation.api.exception_handlers import application_error_handler
 from blog.presentation.api.routers.comments import COMMENTS_ROUTER
 from blog.presentation.api.routers.healthcheck import HEALTHCHECK_ROUTER
@@ -23,6 +28,9 @@ if TYPE_CHECKING:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    map_comments_table()
+    map_outbox_table()
+    map_posts_table()
     stream = bootstrap_stream()
     await stream.start()
     yield

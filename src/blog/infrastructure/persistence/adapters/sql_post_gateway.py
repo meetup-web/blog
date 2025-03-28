@@ -1,5 +1,5 @@
 from sqlalchemy import Row, select
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from blog.application.models.post import PostReadModel
 from blog.application.ports.post_gateway import PostGateway
@@ -8,8 +8,8 @@ from blog.infrastructure.persistence.sql_tables import POSTS_TABLE
 
 
 class SqlPostGateway(PostGateway):
-    def __init__(self, connection: AsyncConnection) -> None:
-        self._connection = connection
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
         self._identity_map: dict[PostId, PostReadModel] = {}
 
     async def with_id(self, post_id: PostId) -> PostReadModel | None:
@@ -24,7 +24,7 @@ class SqlPostGateway(PostGateway):
             POSTS_TABLE.c.updated_at.label("updated_at"),
             POSTS_TABLE.c.creator_id.label("creator_id"),
         ).where(POSTS_TABLE.c.post_id == post_id)
-        cursor_result = await self._connection.execute(statement)
+        cursor_result = await self._session.execute(statement)
         cursor_row = cursor_result.fetchone()
 
         if cursor_row is None:

@@ -9,7 +9,6 @@ from blog.domain.shared.entity import (
     Entity,
 )
 from blog.domain.shared.events import DomainEventAdder
-from blog.domain.shared.unit_of_work import UnitOfWork
 from blog.domain.shared.user_id import UserId
 
 
@@ -18,7 +17,6 @@ class Post(Entity[PostId]):
         self,
         entity_id: PostId,
         event_adder: DomainEventAdder,
-        unit_of_work: UnitOfWork,
         *,
         creator_id: UserId,
         title: str,
@@ -26,7 +24,7 @@ class Post(Entity[PostId]):
         created_at: datetime,
         updated_at: datetime | None = None,
     ) -> None:
-        super().__init__(entity_id, event_adder, unit_of_work)
+        Entity.__init__(self, entity_id, event_adder)
 
         self._title = title
         self._content = content
@@ -44,7 +42,6 @@ class Post(Entity[PostId]):
         comment = Comment(
             comment_id,
             self._event_adder,
-            self._unit_of_work,
             content=content,
             post_id=self._entity_id,
             created_at=current_time,
@@ -72,7 +69,6 @@ class Post(Entity[PostId]):
         self.add_event(
             PostTitleChanged(self.entity_id, self.title, event_date=current_time)
         )
-        self.mark_dirty()
 
     def change_content(self, new_content: str, current_time: datetime) -> None:
         self._content = new_content
@@ -81,7 +77,6 @@ class Post(Entity[PostId]):
         self.add_event(
             PostContentChanged(self.entity_id, self.content, event_date=current_time)
         )
-        self.mark_dirty()
 
     @property
     def title(self) -> str:

@@ -7,7 +7,6 @@ from blog.domain.shared.entity import (
     Entity,
 )
 from blog.domain.shared.events import DomainEventAdder
-from blog.domain.shared.unit_of_work import UnitOfWork
 from blog.domain.shared.user_id import UserId
 
 
@@ -16,7 +15,6 @@ class Comment(Entity[CommentId]):
         self,
         entity_id: CommentId,
         event_adder: DomainEventAdder,
-        unit_of_work: UnitOfWork,
         *,
         creator_id: UserId,
         content: str,
@@ -24,7 +22,7 @@ class Comment(Entity[CommentId]):
         created_at: datetime,
         updated_at: datetime | None = None,
     ) -> None:
-        super().__init__(entity_id, event_adder, unit_of_work)
+        Entity.__init__(self, entity_id, event_adder)
 
         self._content = content
         self._post_id = post_id
@@ -44,7 +42,6 @@ class Comment(Entity[CommentId]):
                 event_date=current_time,
             )
         )
-        self.mark_dirty()
 
     @property
     def post_id(self) -> PostId:

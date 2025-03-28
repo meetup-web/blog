@@ -53,4 +53,4 @@ class DeleteCommentHandler(RequestHandler[DeleteComment, None]):
                 event_date=self._time_provider.provide_current(),
             )
         )
-        self._comment_repository.delete(comment)
+        await self._comment_repository.delete(comment)

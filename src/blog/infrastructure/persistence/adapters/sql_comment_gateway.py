@@ -1,5 +1,5 @@
 from sqlalchemy import Row, select
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from blog.application.models.comment import CommentReadModel
 from blog.application.models.pagination import Pagination
@@ -10,8 +10,8 @@ from blog.infrastructure.persistence.sql_tables import COMMENTS_TABLE
 
 
 class SqlCommentGateway(CommentGateway):
-    def __init__(self, connection: AsyncConnection) -> None:
-        self._connection = connection
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
         self._identity_map: dict[CommentId, CommentReadModel] = {}
 
     async def with_id(self, comment_id: CommentId) -> CommentReadModel | None:
@@ -26,7 +26,7 @@ class SqlCommentGateway(CommentGateway):
             COMMENTS_TABLE.c.updated_at.label("updated_at"),
             COMMENTS_TABLE.c.creator_id.label("creator_id"),
         ).where(COMMENTS_TABLE.c.comment_id == comment_id)
-        cursor_result = await self._connection.execute(statement)
+        cursor_result = await self._session.execute(statement)
         cursor_row: Row | None = cursor_result.fetchone()
 
         if not cursor_row:
@@ -35,9 +35,7 @@ class SqlCommentGateway(CommentGateway):
         return self._load(cursor_row)
 
     async def with_post_id(
-        self,
-        post_id: PostId,
-        pagination: Pagination,
+        self, post_id: PostId, pagination: Pagination
     ) -> list[CommentReadModel]:
         statement = (
             select(
@@ -52,7 +50,7 @@ class SqlCommentGateway(CommentGateway):
             .limit(pagination.limit)
             .offset(pagination.offset)
         )
-        cursor_result = await self._connection.execute(statement)
+        cursor_result = await self._session.execute(statement)
 
         comments: list[CommentReadModel] = []
         for cursor_row in cursor_result:
