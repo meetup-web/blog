@@ -24,7 +24,7 @@ COMMENTS_TABLE = Table(
     "comments",
     MAPPER_REGISTRY.metadata,
     Column("comment_id", UUID, primary_key=True),
-    Column("post_id", ForeignKey("posts.post_id"), nullable=False),
+    Column("post_id", ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=False),
     Column("content", Text, nullable=False),
     Column("creator_id", UUID, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),

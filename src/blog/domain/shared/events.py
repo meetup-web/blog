@@ -17,10 +17,8 @@ class DomainEvent(Notification):
         return type(self).__name__
 
     def set_event_id(self, event_id: EventId) -> None:
-        if self.event_id:
-            raise ValueError("Identifier already set")
-
-        object.__setattr__(self, "event_id", event_id)
+        if not self.event_id:
+            object.__setattr__(self, "event_id", event_id)
 
 
 class DomainEventAdder(ABC):

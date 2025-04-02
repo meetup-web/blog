@@ -7,8 +7,8 @@ from blog.application.common.application_error import (
     ErrorType,
 )
 from blog.application.common.markers.command import Command
-from blog.application.ports.context.identity_provider import IdentityProvider
 from blog.application.ports.id_generator import IdGenerator
+from blog.application.ports.identity_provider import IdentityProvider
 from blog.application.ports.time_provider import TimeProvider
 from blog.domain.comments.comment_id import CommentId
 from blog.domain.comments.repository import CommentRepository
@@ -38,7 +38,7 @@ class AddCommentHandler(RequestHandler[AddComment, CommentId]):
         self._identity_provider = identitiy_provider
 
     async def handle(self, request: AddComment) -> CommentId:
-        current_user_id = await self._identity_provider.current_user_id()
+        current_user_id = self._identity_provider.current_user_id()
         post = await self._post_repository.load(request.post_id)
 
         if post is None:

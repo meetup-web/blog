@@ -1,9 +1,12 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from blog.domain.posts.post import Post
 from blog.domain.posts.post_id import PostId
 from blog.domain.posts.repository import PostRepository
 from blog.domain.shared.events import DomainEventAdder
+from blog.domain.shared.user_id import UserId
+from blog.infrastructure.persistence.sql_tables import POSTS_TABLE
 
 
 class SqlPostRepository(PostRepository):
@@ -28,6 +31,12 @@ class SqlPostRepository(PostRepository):
             return None
 
         return self._load(post)
+
+    async def with_user_id(self, user_id: UserId) -> list[Post]:
+        stmt = select(Post).where(POSTS_TABLE.c.creator_id == user_id)
+        posts = (await self._session.execute(stmt)).scalars().all()
+
+        return [self._load(post) for post in posts]
 
     def _load(self, post: Post) -> Post:
         post.__setattr__("_event_adder", self._event_adder)

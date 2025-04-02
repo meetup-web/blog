@@ -4,8 +4,7 @@ from uuid import UUID
 from fastapi import Request
 
 from blog.application.common.application_error import ApplicationError, ErrorType
-from blog.application.ports.context.identity_provider import IdentityProvider
-from blog.application.ports.context.user_role import UserRole
+from blog.application.ports.identity_provider import IdentityProvider
 from blog.domain.shared.user_id import UserId
 
 
@@ -16,7 +15,7 @@ class HttpIdentityProvider(IdentityProvider):
     def __init__(self, request: Request) -> None:
         self._request = request
 
-    async def current_user_id(self) -> UserId:
+    def current_user_id(self) -> UserId:
         user_id = self._request.headers.get(self._USER_ID_HEADER)
 
         if not user_id:
@@ -25,13 +24,3 @@ class HttpIdentityProvider(IdentityProvider):
             )
 
         return UserId(UUID(user_id))
-
-    async def current_user_role(self) -> UserRole:
-        user_role = self._request.headers.get(self._USER_ROLE_HEADER)
-
-        if not user_role:
-            raise ApplicationError(
-                message="User not provided", error_type=ErrorType.AUTHORIZATION_ERROR
-            )
-
-        return UserRole(user_role)

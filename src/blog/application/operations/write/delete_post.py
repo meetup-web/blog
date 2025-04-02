@@ -9,46 +9,43 @@ from blog.application.common.application_error import (
 from blog.application.common.markers.command import Command
 from blog.application.ports.identity_provider import IdentityProvider
 from blog.application.ports.time_provider import TimeProvider
+from blog.domain.posts.events import PostDeleted
 from blog.domain.posts.post_id import PostId
 from blog.domain.posts.repository import PostRepository
 
 
 @dataclass(frozen=True)
-class EditPost(Command[None]):
+class DeletePost(Command[None]):
     post_id: PostId
-    new_title: str
-    new_content: str
 
 
-class EditPostHandler(RequestHandler[EditPost, None]):
+class DeletePostHandler(RequestHandler[DeletePost, None]):
     def __init__(
         self,
-        time_provider: TimeProvider,
         post_repository: PostRepository,
         identity_provider: IdentityProvider,
+        time_provider: TimeProvider,
     ) -> None:
-        self._time_provider = time_provider
         self._post_repository = post_repository
         self._identity_provider = identity_provider
+        self._time_provider = time_provider
 
-    async def handle(self, request: EditPost) -> None:
+    async def handle(self, request: DeletePost) -> None:
         current_user_id = self._identity_provider.current_user_id()
         post = await self._post_repository.load(request.post_id)
 
-        if not post:
-            raise ApplicationError(
-                error_type=ErrorType.NOT_FOUND,
-                message=f"Post with id {request.post_id} not found",
-            )
+        if post is None:
+            raise ApplicationError("Post not found", error_type=ErrorType.NOT_FOUND)
 
-        if current_user_id != post.creator_id:
+        if post.creator_id != current_user_id:
             raise ApplicationError(
+                "You are not allowed to delete this post",
                 error_type=ErrorType.PERMISSION_ERROR,
-                message="You are not allowed to edit this post",
             )
 
-        post.edit(
-            request.new_title,
-            request.new_content,
-            self._time_provider.provide_current(),
+        event = PostDeleted(
+            post_id=post.entity_id, event_date=self._time_provider.provide_current()
         )
+
+        post.add_event(event)
+        await self._post_repository.delete(post)

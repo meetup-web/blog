@@ -32,6 +32,9 @@ from blog.application.common.behaviors.event_publishing_behavior import (
     EventPublishingBehavior,
 )
 from blog.application.common.markers.command import Command
+from blog.application.operations.events.remove_comments_on_post_deleted import (
+    RemoveCommentsOnPostDeletedHandler,
+)
 from blog.application.operations.read.get_comment_by_id import (
     GetCommentById,
     GetCommentByIdHandler,
@@ -56,6 +59,18 @@ from blog.application.operations.write.delete_comment import (
     DeleteComment,
     DeleteCommentHandler,
 )
+from blog.application.operations.write.delete_post import (
+    DeletePost,
+    DeletePostHandler,
+)
+from blog.application.operations.write.delete_user_comments import (
+    DeleteUserComments,
+    DeleteUserCommentsHandler,
+)
+from blog.application.operations.write.delete_user_posts import (
+    DeleteUserPosts,
+    DeleteUserPostsHandler,
+)
 from blog.application.operations.write.edit_comment import (
     EditComment,
     EditCommentHandler,
@@ -69,6 +84,7 @@ from blog.bootstrap.config import (
     DatabaseConfig,
     RabbitmqConfig,
 )
+from blog.domain.posts.events import PostDeleted
 from blog.domain.shared.events import DomainEvent
 from blog.infrastructure.domain_events import DomainEvents
 from blog.infrastructure.outbox.adapters.rabbitmq_outbox_publisher import (
@@ -187,6 +203,10 @@ class ApplicationHandlersProvider(Provider):
         GetCommentByIdHandler,
         OutboxStoringHandler,
         GetPostByIdHandler,
+        DeletePostHandler,
+        DeleteUserPostsHandler,
+        DeleteUserCommentsHandler,
+        RemoveCommentsOnPostDeletedHandler,
     )
     behaviors = provide_all(
         CommitionBehavior,
@@ -210,6 +230,12 @@ class BazarioProvider(Provider):
         registry.add_request_handler(GetPostById, GetPostByIdHandler)
         registry.add_request_handler(GetPostComments, GetPostCommentsHandler)
         registry.add_request_handler(GetCommentById, GetCommentByIdHandler)
+        registry.add_request_handler(DeletePost, DeletePostHandler)
+        registry.add_request_handler(DeleteUserPosts, DeleteUserPostsHandler)
+        registry.add_request_handler(DeleteUserComments, DeleteUserCommentsHandler)
+        registry.add_notification_handlers(
+            PostDeleted, RemoveCommentsOnPostDeletedHandler
+        )
         registry.add_notification_handlers(DomainEvent, OutboxStoringHandler)
         registry.add_pipeline_behaviors(DomainEvent, EventIdGenerationBehavior)
         registry.add_pipeline_behaviors(

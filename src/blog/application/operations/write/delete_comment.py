@@ -7,7 +7,7 @@ from blog.application.common.application_error import (
     ErrorType,
 )
 from blog.application.common.markers.command import Command
-from blog.application.ports.context.identity_provider import IdentityProvider
+from blog.application.ports.identity_provider import IdentityProvider
 from blog.application.ports.time_provider import TimeProvider
 from blog.domain.comments.comment_id import CommentId
 from blog.domain.comments.events import CommentDeleted
@@ -31,7 +31,7 @@ class DeleteCommentHandler(RequestHandler[DeleteComment, None]):
         self._identity_provider = identity_provider
 
     async def handle(self, request: DeleteComment) -> None:
-        current_user_id = await self._identity_provider.current_user_id()
+        current_user_id = self._identity_provider.current_user_id()
         comment = await self._comment_repository.load(request.comment_id)
 
         if comment is None:
