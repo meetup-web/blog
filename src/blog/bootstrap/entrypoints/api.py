@@ -17,7 +17,10 @@ from blog.infrastructure.persistence.sql_tables import (
     map_outbox_table,
     map_posts_table,
 )
-from blog.presentation.api.exception_handlers import application_error_handler
+from blog.presentation.api.exception_handlers import (
+    application_error_handler,
+    internal_error_handler,
+)
 from blog.presentation.api.routers.comments import COMMENTS_ROUTER
 from blog.presentation.api.routers.healthcheck import HEALTHCHECK_ROUTER
 from blog.presentation.api.routers.posts import POSTS_ROUTER
@@ -57,6 +60,10 @@ def add_exception_handlers(application: FastAPI) -> None:
     application.add_exception_handler(
         ApplicationError,
         cast("HTTPExceptionHandler", application_error_handler),
+    )
+    application.add_exception_handler(
+        Exception,
+        cast("HTTPExceptionHandler", internal_error_handler),
     )
 
 
